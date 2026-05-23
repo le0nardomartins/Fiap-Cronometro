@@ -46,3 +46,6 @@ Thumbs.db
 .pnp.*
 .npm/
 .yarn/
+
+.vercel
+.env*.local

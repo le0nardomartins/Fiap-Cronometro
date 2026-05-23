@@ -1,7 +1,7 @@
 # FIAP Timer Lab
 
 Projeto front-end com visual FIAP que entrega:
-- Cronometro
+- Cronômetro
 - Temporizador
 - Animacoes ricas com foco em UI clean
 - Fundo com particulas interativas
@@ -55,7 +55,7 @@ Saida gerada em:
 ```
 
 ## Funcionalidades
-1. Cronometro
+1. Cronômetro
 - Iniciar, pausar e zerar
 - Atualizacao suave em centesimos
 
