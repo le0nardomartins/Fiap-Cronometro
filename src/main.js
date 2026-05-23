@@ -22,7 +22,7 @@ app.innerHTML = `
     </header>
 
     <section class="stage">
-      <div class="view view-timer" id="timerView">
+      <div class="view view-timer is-visible" id="timerView">
         <input
           id="timerDisplayInput"
           class="big-time big-time-input"
@@ -52,7 +52,19 @@ app.innerHTML = `
         <button id="controlReset" class="icon-btn icon-reset" type="button" aria-label="Reiniciar">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path
-              d="M12 5a7 7 0 1 1-6.93 8H3.02A9 9 0 1 0 6 6.74V4H4v6h6V8H7.31A6.95 6.95 0 0 1 12 5z"
+              d="M7 8a7 7 0 1 1-2 4.9"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            ></path>
+            <path
+              d="M7 4.8v3.8h3.8"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
             ></path>
           </svg>
         </button>
@@ -121,39 +133,38 @@ let timerRemainingMs = 120000;
 let timerConfiguredMs = 120000;
 let timerLastTick = 0;
 let timerInterval = null;
+let timerDraftDigits = "200";
+
+const MAX_TIMER_DIGITS = 5;
 
 const clampInt = (value, min, max) => Math.min(max, Math.max(min, value));
 
-const normalizeTimerEntry = (value) => {
-  const cleaned = value.replace(/[^\d:]/g, "");
+const getTimerDigits = (value) => value.replace(/\D/g, "").slice(0, MAX_TIMER_DIGITS);
+
+const digitsToTimerParts = (digitsValue) => {
+  const digits = getTimerDigits(digitsValue);
   let minutes = 0;
   let seconds = 0;
 
-  if (cleaned.includes(":")) {
-    const [minRaw = "0", secRaw = "0"] = cleaned.split(":");
-    minutes = parseInt(minRaw, 10) || 0;
-    seconds = parseInt(secRaw, 10) || 0;
+  if (digits.length <= 2) {
+    seconds = parseInt(digits || "0", 10) || 0;
   } else {
-    const digits = cleaned.replace(/\D/g, "");
-    if (digits.length <= 2) {
-      seconds = parseInt(digits || "0", 10) || 0;
-    } else {
-      minutes = parseInt(digits.slice(0, -2), 10) || 0;
-      seconds = parseInt(digits.slice(-2), 10) || 0;
-    }
+    minutes = parseInt(digits.slice(0, -2), 10) || 0;
+    seconds = parseInt(digits.slice(-2), 10) || 0;
   }
 
   minutes = clampInt(minutes, 0, 999);
   seconds = clampInt(seconds, 0, 59);
 
-  return { minutes, seconds };
+  return { minutes, seconds, digits };
 };
 
 const parseTimerInputValue = () => {
-  const { minutes, seconds } = normalizeTimerEntry(timerDisplayInput.value);
+  const { minutes, seconds, digits } = digitsToTimerParts(timerDraftDigits);
   return {
     milliseconds: (minutes * 60 + seconds) * 1000,
-    text: `${pad2(minutes)}:${pad2(seconds)}`
+    text: `${pad2(minutes)}:${pad2(seconds)}`,
+    digits
   };
 };
 
@@ -230,6 +241,7 @@ const applyTimerInput = () => {
   timerConfiguredMs = parsed.milliseconds;
   timerRemainingMs = parsed.milliseconds;
   timerDisplayInput.value = parsed.text;
+  timerDraftDigits = parsed.digits;
 };
 
 const setMode = (mode) => {
@@ -238,6 +250,8 @@ const setMode = (mode) => {
 
   timerView.hidden = !timerSelected;
   stopwatchView.hidden = timerSelected;
+  timerView.classList.toggle("is-visible", timerSelected);
+  stopwatchView.classList.toggle("is-visible", !timerSelected);
 
   modeButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === mode);
@@ -279,12 +293,30 @@ controlStart.addEventListener("click", startActiveMode);
 controlPause.addEventListener("click", pauseActiveMode);
 controlReset.addEventListener("click", resetActiveMode);
 
-timerDisplayInput.addEventListener("focus", () => timerDisplayInput.select());
+timerDisplayInput.addEventListener("focus", () => {
+  timerDraftDigits = getTimerDigits(timerDisplayInput.value);
+});
 timerDisplayInput.addEventListener("input", () => {
-  timerDisplayInput.value = timerDisplayInput.value.replace(/[^\d:]/g, "");
+  if (timerRunning) return;
+  timerDraftDigits = getTimerDigits(timerDisplayInput.value);
+  const parsed = parseTimerInputValue();
+  timerDisplayInput.value = parsed.text;
 });
 timerDisplayInput.addEventListener("blur", applyTimerInput);
 timerDisplayInput.addEventListener("keydown", (event) => {
+  if (timerRunning) return;
+
+  if (
+    event.key.length === 1 &&
+    !/\d/.test(event.key) &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey
+  ) {
+    event.preventDefault();
+    return;
+  }
+
   if (event.key === "Enter") {
     timerDisplayInput.blur();
   }
@@ -310,22 +342,22 @@ const initParticles = async () => {
         }
       },
       particles: {
-        number: { value: 95, density: { enable: true, area: 900 } },
+        number: { value: 170, density: { enable: true, area: 900 } },
         color: { value: ["#ED145B", "#FFFFFF", "#5B5B63"] },
         links: {
           enable: true,
           color: "#ED145B",
-          distance: 120,
-          opacity: 0.18,
+          distance: 145,
+          opacity: 0.28,
           width: 1
         },
         move: {
           enable: true,
-          speed: 1.1,
+          speed: 1.7,
           outModes: { default: "bounce" }
         },
-        opacity: { value: { min: 0.08, max: 0.45 } },
-        size: { value: { min: 1, max: 3.5 } }
+        opacity: { value: { min: 0.08, max: 0.62 } },
+        size: { value: { min: 1, max: 4.2 } }
       }
     }
   });
